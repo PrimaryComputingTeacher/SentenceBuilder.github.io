@@ -1,0 +1,791 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentence Builder - Colourful Semantics</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Lexend', 'sans-serif'],
+                    },
+                    colors: {
+                        df_bg: '#fcf9f2',
+                        df_text: '#222222',
+                        cs_who: '#EA580C',      // Orange
+                        cs_relative: '#0D9488', // Teal (Relative Clause)
+                        cs_doing: '#EAB308',    // Yellow
+                        cs_what: '#16A34A',     // Green
+                        cs_where: '#0284C7',    // Blue/Cyan
+                        cs_towho: '#64748B',    // White/Slate
+                        cs_describe: '#9333EA', // Purple
+                        cs_when: '#9A3412',     // Brown
+                        cs_how: '#EC4899',      // Pink
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: theme('colors.df_bg');
+            color: theme('colors.df_text');
+            letter-spacing: 0.025em; 
+            line-height: 1.6;
+        }
+
+        .builder-box {
+            border-radius: 16px;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 2px solid #e2e8f0;
+        }
+
+        .lined-paper-box {
+            background-color: #fdfbf7;
+            background-image: 
+                /* Red vertical margin line */
+                linear-gradient(to right, transparent 48px, #f87171 48px, #f87171 50px, transparent 50px),
+                /* Horizontal English book ruling lines matched to 40px text baseline */
+                repeating-linear-gradient(to bottom, transparent 0px, transparent 31px, #cbd5e1 31px, #cbd5e1 32px, transparent 32px, transparent 40px);
+            background-position: 0 0;
+        }
+
+        .lined-paper-text {
+            padding-left: 62px;
+            padding-right: 16px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+            line-height: 40px;
+            font-size: 1.25rem;
+            min-height: 120px;
+        }
+
+        @media (min-width: 768px) {
+            .lined-paper-text {
+                font-size: 1.375rem;
+            }
+        }
+
+        .word-btn {
+            transition: all 0.2s ease-in-out;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .word-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(0.95);
+        }
+        
+        .word-btn:active {
+            transform: translateY(1px);
+        }
+
+        .word-btn.active {
+            box-shadow: inset 0 0 0 4px rgba(0,0,0,0.25);
+            font-weight: 600;
+        }
+
+        .tab-btn {
+            border-bottom: 4px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-btn.active {
+            border-bottom: 4px solid #4b5563;
+            background-color: #f3f4f6;
+            font-weight: 600;
+        }
+        
+        .dynamic-grid {
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        /* Translucent category highlight pills */
+        .translucent-slot {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-8 px-4 sm:px-6 relative">
+
+    <main class="w-full max-w-7xl z-10">
+        
+        <header class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
+                🧩 Colourful Semantics Builder
+            </h1>
+            <p class="text-lg text-gray-600">
+                Tap words to build your sentence!
+            </p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="flex justify-center mb-8 border-b-2 border-gray-300">
+            <button onclick="switchView('pupil')" id="tab-pupil" class="tab-btn active text-lg py-3 px-8 rounded-t-xl hover:bg-gray-100 flex items-center gap-2">
+                🎓 Pupil
+            </button>
+            <button onclick="switchView('teacher-login')" id="tab-teacher" class="tab-btn text-lg py-3 px-8 rounded-t-xl hover:bg-gray-100 flex items-center gap-2">
+                ⚙️ Teacher
+            </button>
+        </div>
+
+        <div id="view-pupil" class="block">
+            <!-- Sentence Display Area with Translucent Placeholders -->
+            <section class="mb-8 w-full">
+                <div class="builder-box p-4 md:p-6 flex flex-col gap-3">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                            <span>📖 English Notebook - Your Sentence</span>
+                        </h2>
+                    </div>
+                    
+                    <!-- Dedicated Lined Paper Container -->
+                    <div class="lined-paper-box rounded-xl border-2 border-slate-300 relative overflow-hidden shadow-inner">
+                        <div id="sentence-output" class="lined-paper-text font-medium text-slate-900 z-10">
+                            <!-- Dynamic translucent placeholders & selected words injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end gap-3 pt-1">
+                        <button onclick="readSentence()" class="bg-blue-100 hover:bg-blue-200 text-blue-800 border-2 border-blue-300 rounded-full px-5 py-2 font-bold flex items-center gap-2 shadow-sm transition-transform hover:scale-105 text-sm md:text-base">
+                            🔊 Read Aloud
+                        </button>
+                        <button onclick="clearSentence()" class="bg-red-100 hover:bg-red-200 text-red-800 border-2 border-red-300 rounded-full px-5 py-2 font-bold flex items-center gap-2 shadow-sm transition-transform hover:scale-105 text-sm md:text-base">
+                            🗑️ Clear
+                        </button>
+                    </div>
+                </div>
+                <div id="tts-error" class="text-red-500 text-center mt-2 hidden text-sm font-medium">Text-to-speech is not supported in this browser.</div>
+            </section>
+
+            <!-- Dynamic Word Columns -->
+            <section id="word-columns-container" class="dynamic-grid">
+                <!-- Columns injected via JS based on data -->
+            </section>
+        </div>
+
+        <div id="view-teacher-login" class="hidden max-w-md mx-auto">
+            <div class="builder-box p-8 text-center">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Teacher Access</h2>
+                <p class="mb-6 text-gray-600">Please enter the password to edit word lists and sentence structure.</p>
+                
+                <input type="password" id="admin-password" class="w-full p-3 border-2 border-gray-300 rounded-lg mb-4 text-center text-xl focus:border-blue-500 focus:outline-none" placeholder="Password">
+                
+                <div id="login-error" class="text-red-500 mb-4 hidden font-medium">Incorrect password. Please try again.</div>
+                
+                <button onclick="checkPassword()" class="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                    Unlock Settings
+                </button>
+            </div>
+        </div>
+
+        <div id="view-teacher-admin" class="hidden">
+            <div class="builder-box p-6 md:p-8">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b-2 border-gray-200 pb-4 mb-6 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Edit Sentence Structure & Word Banks</h2>
+                        <p class="text-gray-600 mt-1">
+                            Use the <span class="font-semibold text-gray-800">◀ ▶ Order buttons</span> below to set the sentence structure for pupils.<br>
+                            Enter up to 6 words per box (one per line). Empty boxes will be hidden on the pupil dashboard.
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="generateShareableLink()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md transition-transform hover:scale-105 flex items-center gap-2 whitespace-nowrap">
+                            🔗 Copy Pupil Share Link
+                        </button>
+                        <button onclick="resetToDefaultWords()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border-2 border-amber-300 font-bold py-2.5 px-4 rounded-xl shadow-sm transition-transform hover:scale-105 flex items-center gap-2 whitespace-nowrap">
+                            🔄 Load Default Words
+                        </button>
+                        <button onclick="saveAndCloseAdmin()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-transform hover:scale-105 flex items-center gap-2 whitespace-nowrap">
+                            💾 Save & Lock Settings
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sentence Structure Ordering Bar -->
+                <div class="mb-8 p-4 bg-slate-100 rounded-2xl border-2 border-slate-200">
+                    <h3 class="font-bold text-gray-700 mb-2 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        🔀 Active Sentence Element Sequence
+                    </h3>
+                    <div id="admin-sequence-preview" class="flex flex-wrap gap-2 items-center text-sm font-semibold">
+                        <!-- Preview rendered via JS -->
+                    </div>
+                </div>
+
+                <!-- 8 Element Grid Editor -->
+                <div id="admin-editors-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-5">
+                    <!-- Textareas dynamically rendered in current order -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification Popup -->
+    <div id="toast-notification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div id="toast-content" class="bg-slate-800 text-white px-5 py-3 rounded-xl shadow-xl font-medium text-sm sm:text-base flex items-center gap-2">
+            <span id="toast-message">Notification</span>
+        </div>
+    </div>
+
+    <script>
+        // Preserved default configurations for easy reset
+        const DEFAULT_ORDER = ['who', 'relative', 'doing', 'what', 'where', 'towho', 'describe', 'when', 'how'];
+        const DEFAULT_WORD_BANKS = {
+            who: ['boy 👦', 'girl 👧', 'teacher 🧑‍🏫', 'cat 🐱', 'dog 🐶'],
+            relative: [', who was very tall,', ', which was shiny,', '(who lived in a castle)', '- who loved adventure -'],
+            doing: ['is giving 🎁', 'is kicking ⚽', 'is sending ✉️', 'is throwing 🤾'],
+            what: ['a ball ⚽', 'a book 📖', 'a present 🎁', 'an apple 🍎'],
+            where: ['at school 🏫', 'in the park 🏞️', 'at home 🏠'],
+            towho: ['to his friend 🧑‍🤝‍🧑', 'to grandma 👵', 'to the doctor 🧑‍⚕️'],
+            describe: ['big 🐘', 'happy 😊', 'red 🔴', 'shiny ✨'],
+            when: ['today ☀️', 'yesterday 📅', 'in the morning 🌅'],
+            how: ['quickly ⚡', 'carefully 🤲', 'quietly 🤫']
+        };
+
+        // Active State initialized with default copies
+        let order = [...DEFAULT_ORDER];
+        let wordBanks = JSON.parse(JSON.stringify(DEFAULT_WORD_BANKS));
+
+        // Comprehensive element config matching image colors and symbol graphics
+        const config = {
+            who: {
+                id: 'who',
+                title: 'WHO',
+                subtitle: 'Person or animal',
+                colorClass: 'orange',
+                bgMinimal: 'bg-orange-100/90 border-b-2 border-orange-500 text-orange-950',
+                placeholderMinimal: 'bg-orange-50/60 border-orange-300 text-orange-700',
+                columnBorder: 'border-orange-400',
+                headerBg: 'bg-orange-500 text-white',
+                btnStyle: 'bg-orange-100 border-orange-300 text-orange-950 hover:bg-orange-200',
+                defaultIcon: '🧑',
+                symbolSvg: `<svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="42" cy="22" r="12" />
+                    <line x1="42" y1="34" x2="42" y2="62" />
+                    <line x1="42" y1="46" x2="22" y2="35" />
+                    <line x1="42" y1="46" x2="62" y2="35" />
+                    <line x1="42" y1="62" x2="26" y2="90" />
+                    <line x1="42" y1="62" x2="58" y2="90" />
+                    <path d="M 72 20 C 72 10, 88 10, 88 22 C 88 32, 80 30, 80 40" stroke-width="7" />
+                    <circle cx="80" cy="52" r="2.5" fill="currentColor" />
+                </svg>`
+            },
+            relative: {
+                id: 'relative',
+                title: 'RELATIVE CLAUSE',
+                subtitle: 'Extra detail (commas/brackets)',
+                colorClass: 'teal',
+                bgMinimal: 'bg-teal-100/90 border-b-2 border-teal-600 text-teal-950',
+                placeholderMinimal: 'bg-teal-50/60 border-teal-300 text-teal-800',
+                columnBorder: 'border-teal-500',
+                headerBg: 'bg-teal-600 text-white',
+                btnStyle: 'bg-teal-100 border-teal-300 text-teal-950 hover:bg-teal-200',
+                defaultIcon: '📎',
+                symbolSvg: `<svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 25 20 C 12 35, 12 65, 25 80" />
+                    <path d="M 75 20 C 88 35, 88 65, 75 80" />
+                    <line x1="36" y1="50" x2="64" y2="50" stroke-dasharray="4 4" />
+                    <polyline points="54,42 64,50 54,58" />
+                </svg>`
+            },
+            doing: {
+                id: 'doing',
+                title: 'DOING',
+                subtitle: 'Action or verb',
+                colorClass: 'yellow',
+                bgMinimal: 'bg-yellow-100/90 border-b-2 border-yellow-500 text-yellow-950',
+                placeholderMinimal: 'bg-yellow-50/60 border-yellow-300 text-yellow-800',
+                columnBorder: 'border-yellow-400',
+                headerBg: 'bg-yellow-400 text-yellow-950',
+                btnStyle: 'bg-yellow-100 border-yellow-300 text-yellow-950 hover:bg-yellow-200',
+                defaultIcon: '⚡',
+                symbolSvg: `<svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="36" cy="20" r="10" />
+                    <line x1="36" y1="30" x2="30" y2="58" />
+                    <line x1="30" y1="40" x2="56" y2="30" />
+                    <line x1="56" y1="30" x2="70" y2="20" />
+                    <rect x="66" y="14" width="12" height="12" fill="currentColor" />
+                    <line x1="30" y1="58" x2="16" y2="88" />
+                    <line x1="30" y1="58" x2="44" y2="88" />
+                    <rect x="52" y="50" width="34" height="34" stroke-width="6" fill="none" />
+                    <line x1="56" y1="36" x2="58" y2="50" stroke-width="5" />
+                </svg>`
+            },
+            what: {
+                id: 'what',
+                title: 'WHAT',
+                subtitle: 'Object or thing',
+                colorClass: 'green',
+                bgMinimal: 'bg-green-100/90 border-b-2 border-green-600 text-green-950',
+                placeholderMinimal: 'bg-green-50/60 border-green-300 text-green-800',
+                columnBorder: 'border-green-500',
+                headerBg: 'bg-green-600 text-white',
+                btnStyle: 'bg-green-100 border-green-300 text-green-950 hover:bg-green-200',
+                defaultIcon: '📦',
+                symbolSvg: `<svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="50" cy="20" r="10" />
+                    <line x1="50" y1="30" x2="50" y2="55" />
+                    <line x1="50" y1="40" x2="32" y2="50" />
+                    <line x1="32" y1="50" x2="32" y2="66" />
+                    <circle cx="32" cy="68" r="3" fill="currentColor" />
+                    <line x1="50" y1="40" x2="68" y2="35" />
+                    <line x1="68" y1="35" x2="72" y2="52" stroke-width="7" />
+                    <line x1="50" y1="55" x2="36" y2="85" />
+                    <line x1="50" y1="55" x2="64" y2="85" />
+                    <line x1="15" y1="68" x2="85" y2="68" stroke-width="7" />
+                    <circle cx="72" cy="58" r="8" fill="#EF4444" stroke="none" />
+                </svg>`
+            },
+            where: {
+                id: 'where',
+                title: 'WHERE',
+                subtitle: 'Place or location',
+                colorClass: 'blue',
+                bgMinimal: 'bg-sky-100/90 border-b-2 border-sky-500 text-sky-950',
+                placeholderMinimal: 'bg-sky-50/60 border-sky-300 text-sky-800',
+                columnBorder: 'border-sky-400',
+                headerBg: 'bg-sky-500 text-white',
+                btnStyle: 'bg-sky-100 border-sky-300 text-sky-950 hover:bg-sky-200',
+                defaultIcon: '📍',
+                symbolSvg: `<svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="50" y1="35" x2="50" y2="92" stroke-width="8" />
+                    <path d="M 18 35 L 75 35 L 88 48 L 75 61 L 18 61 Z" fill="none" stroke-width="6" />
+                    <path d="M 62 12 C 62 4, 76 4, 76 14 C 76 22, 70 20, 70 28" stroke-width="6" />
+                    <circle cx="70" cy="34" r="2" fill="currentColor" />
+                </svg>`
+            },
+            towho: {
+                id: 'towho',
+                title: 'TO WHO',
+                subtitle: 'Recipient or target',
+                colorClass: 'slate',
+                bgMinimal: 'bg-slate-200/90 border-b-2 border-slate-500 text-slate-950',
+                placeholderMinimal: 'bg-slate-100/60 border-slate-300 text-slate-700',
+                columnBorder: 'border-slate-400',
+                headerBg: 'bg-slate-700 text-white',
+                btnStyle: 'bg-slate-100 border-slate-300 text-slate-950 hover:bg-slate-200',
+                defaultIcon: '➡️',
+                symbolSvg: `<svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="72" y1="15" x2="72" y2="85" />
+                    <line x1="15" y1="50" x2="62" y2="50" />
+                    <polyline points="45,32 62,50 45,68" />
+                </svg>`
+            },
+            describe: {
+                id: 'describe',
+                title: 'DESCRIBE',
+                subtitle: 'Adjective or detail',
+                colorClass: 'purple',
+                bgMinimal: 'bg-purple-100/90 border-b-2 border-purple-500 text-purple-950',
+                placeholderMinimal: 'bg-purple-50/60 border-purple-300 text-purple-800',
+                columnBorder: 'border-purple-400',
+                headerBg: 'bg-purple-600 text-white',
+                btnStyle: 'bg-purple-100 border-purple-300 text-purple-950 hover:bg-purple-200',
+                defaultIcon: '⭐',
+                symbolSvg: `<svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 15 50 C 15 25, 35 15, 55 15 C 80 15, 90 32, 90 52 C 90 70, 72 82, 50 82 C 40 82, 32 88, 22 92 C 25 82, 15 72, 15 50 Z" fill="none" />
+                    <ellipse cx="42" cy="48" rx="8" ry="12" fill="none" stroke-width="5" />
+                    <circle cx="42" cy="48" r="4" fill="currentColor" />
+                    <ellipse cx="68" cy="48" rx="8" ry="12" fill="none" stroke-width="5" />
+                    <circle cx="68" cy="48" r="4" fill="currentColor" />
+                </svg>`
+            },
+            when: {
+                id: 'when',
+                title: 'WHEN',
+                subtitle: 'Time or frequency',
+                colorClass: 'brown',
+                bgMinimal: 'bg-amber-100/90 border-b-2 border-amber-700 text-amber-950',
+                placeholderMinimal: 'bg-amber-50/60 border-amber-300 text-amber-800',
+                columnBorder: 'border-amber-700',
+                headerBg: 'bg-amber-800 text-white',
+                btnStyle: 'bg-amber-100 border-amber-300 text-amber-950 hover:bg-amber-200',
+                defaultIcon: '⏰',
+                symbolSvg: `<svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="42" cy="52" r="30" stroke-width="7" />
+                    <polyline points="42,32 42,52 56,52" stroke-width="7" />
+                    <path d="M 74 20 C 74 10, 88 10, 88 22 C 88 32, 80 30, 80 40" stroke-width="6" />
+                    <circle cx="80" cy="50" r="2" fill="currentColor" />
+                </svg>`
+            },
+            how: {
+                id: 'how',
+                title: 'HOW',
+                subtitle: 'Manner or adverb',
+                colorClass: 'pink',
+                bgMinimal: 'bg-pink-100/90 border-b-2 border-pink-500 text-pink-950',
+                placeholderMinimal: 'bg-pink-50/60 border-pink-300 text-pink-800',
+                columnBorder: 'border-pink-400',
+                headerBg: 'bg-pink-500 text-white',
+                btnStyle: 'bg-pink-100 border-pink-300 text-pink-950 hover:bg-pink-200',
+                defaultIcon: '❓',
+                symbolSvg: `<svg class="w-8 h-8" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 28 32 C 28 12, 72 12, 72 35 C 72 52, 50 50, 50 70" />
+                    <circle cx="50" cy="88" r="4" fill="currentColor" />
+                </svg>`
+            }
+        };
+
+        let currentSentence = {
+            who: null,
+            relative: null,
+            doing: null,
+            what: null,
+            where: null,
+            towho: null,
+            describe: null,
+            when: null,
+            how: null
+        };
+
+        // Extended Primary School Emoji Dictionary
+        const emojiDictionary = {
+            "boy": "👦", "girl": "👧", "teacher": "🧑‍🏫", "man": "👨", "woman": "👩",
+            "cat": "🐱", "dog": "🐶", "bird": "🐦", "fish": "🐟", "giant": "👹",
+            "cow": "🐮", "hen": "🐔", "harp": "🪕", "axe": "🪓", "beanstalk": "🌿",
+            "school": "🏫", "park": "🏞️", "home": "🏠", "castle": "🏰", "garden": "🏡",
+            "book": "📖", "ball": "⚽", "apple": "🍎", "present": "🎁", "car": "🚗",
+            "teeth": "🦷", "tooth": "🦷", "toothpaste": "🪥", "eyes": "👁️", "ears": "👂",
+            "happy": "😊", "sad": "😢", "angry": "😠", "big": "🐘", "small": "🐁",
+            "shiny": "✨", "magic": "🪄", "golden": "🪙",
+            "quickly": "⚡", "slowly": "🐢", "quietly": "🤫", "loudly": "📢"
+        };
+
+        // Strips out emojis so the text looks like a clean sentence and TTS reads it properly
+        function cleanWord(text) {
+            return text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+        }
+
+        // Resolves the best icon: Explicit emoji typed by teacher > Dictionary match > Default Category Icon
+        function getEmojiForWord(text) {
+            const explicitEmojiMatch = text.match(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u);
+            if (explicitEmojiMatch) return explicitEmojiMatch[0];
+            
+            const clean = cleanWord(text).toLowerCase();
+            for (const [key, emoji] of Object.entries(emojiDictionary)) {
+                if (clean.includes(key)) return emoji;
+            }
+            return null;
+        }
+
+        function switchView(viewId) {
+            document.getElementById('view-pupil').classList.add('hidden');
+            document.getElementById('view-teacher-login').classList.add('hidden');
+            document.getElementById('view-teacher-admin').classList.add('hidden');
+            
+            document.getElementById('tab-pupil').classList.remove('active', 'border-gray-600');
+            document.getElementById('tab-teacher').classList.remove('active', 'border-gray-600');
+            
+            if (viewId === 'pupil') {
+                document.getElementById('view-pupil').classList.remove('hidden');
+                document.getElementById('tab-pupil').classList.add('active', 'border-gray-600');
+                renderPupilDashboard();
+            } else if (viewId === 'teacher-login') {
+                document.getElementById('view-teacher-login').classList.remove('hidden');
+                document.getElementById('tab-teacher').classList.add('active', 'border-gray-600');
+                document.getElementById('admin-password').value = '';
+                document.getElementById('login-error').classList.add('hidden');
+            } else if (viewId === 'teacher-admin') {
+                document.getElementById('view-teacher-admin').classList.remove('hidden');
+                document.getElementById('tab-teacher').classList.add('active', 'border-gray-600');
+                renderTeacherDashboard();
+            }
+        }
+
+        function checkPassword() {
+            const pass = document.getElementById('admin-password').value;
+            if (pass === 'teacher2026') {
+                switchView('teacher-admin');
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function selectWord(cat, word) {
+            if (currentSentence[cat] === word) {
+                currentSentence[cat] = null; // Toggle off
+            } else {
+                currentSentence[cat] = word; // Toggle on
+            }
+            renderPupilDashboard();
+        }
+
+        function clearSentence() {
+            Object.keys(currentSentence).forEach(k => currentSentence[k] = null);
+            renderPupilDashboard();
+        }
+
+        function updateSentenceDisplay() {
+            const outputArea = document.getElementById('sentence-output');
+            outputArea.innerHTML = '';
+            
+            let hasWords = false;
+            
+            order.forEach(cat => {
+                if (wordBanks[cat] && wordBanks[cat].length > 0) {
+                    const conf = config[cat];
+                    const wordData = currentSentence[cat];
+                    
+                    const span = document.createElement('span');
+                    if (wordData) {
+                        hasWords = true;
+                        // Seamless baseline alignment preserving Exact Teacher Casing
+                        span.className = `inline-block align-baseline px-1.5 py-0.5 mx-0.5 rounded ${conf.bgMinimal} transition-all duration-300`;
+                        span.textContent = cleanWord(wordData);
+                    } else {
+                        // Translucent Placeholder
+                        span.className = `inline-block align-baseline px-2 py-0.5 mx-0.5 rounded text-[0.8em] tracking-wide ${conf.placeholderMinimal} opacity-70`;
+                        span.textContent = `[ ${conf.title} ]`;
+                    }
+                    outputArea.appendChild(span);
+                    outputArea.appendChild(document.createTextNode(' '));
+                }
+            });
+
+            if (hasWords) {
+                const dot = document.createElement('span');
+                dot.className = 'inline-block align-baseline font-bold text-slate-800 ml-0.5';
+                dot.textContent = '.';
+                outputArea.appendChild(dot);
+            }
+        }
+
+        function renderPupilDashboard() {
+            const container = document.getElementById('word-columns-container');
+            container.innerHTML = '';
+            
+            let activeColumnsCount = 0;
+            
+            order.forEach(cat => {
+                if (wordBanks[cat] && wordBanks[cat].length > 0) {
+                    activeColumnsCount++;
+                    const conf = config[cat];
+                    const col = document.createElement('div');
+                    col.className = `flex flex-col gap-2 p-3 rounded-xl border-2 bg-white shadow-sm ${conf.columnBorder}`;
+                    
+                    const header = document.createElement('div');
+                    header.className = `flex flex-col items-center justify-center p-3 rounded-lg mb-2 text-center ${conf.headerBg} shadow-sm`;
+                    header.innerHTML = `
+                        ${conf.symbolSvg}
+                        <span class="font-bold text-sm tracking-wide mt-1">${conf.title}</span>
+                        <span class="text-[10px] opacity-90 uppercase tracking-wider">${conf.subtitle}</span>
+                    `;
+                    col.appendChild(header);
+
+                    wordBanks[cat].forEach(word => {
+                        const btn = document.createElement('button');
+                        const isSelected = currentSentence[cat] === word;
+                        btn.className = `word-btn px-3 py-3 rounded-lg border-2 text-left font-medium w-full ${isSelected ? 'active ring-2 ring-offset-1 ring-slate-300 ' + conf.bgMinimal : conf.btnStyle}`;
+                        
+                        const emoji = getEmojiForWord(word) || conf.defaultIcon;
+                        const cleanTxt = cleanWord(word);
+                        
+                        btn.innerHTML = `<span class="text-xl shrink-0">${emoji}</span> <span class="leading-tight">${cleanTxt}</span>`;
+                        btn.onclick = () => selectWord(cat, word);
+                        
+                        col.appendChild(btn);
+                    });
+                    container.appendChild(col);
+                }
+            });
+            
+            // Auto grid layout based on number of active columns
+            container.className = `dynamic-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(activeColumnsCount, 4)} xl:grid-cols-${Math.min(activeColumnsCount, 5)}`;
+            
+            updateSentenceDisplay();
+        }
+
+        function syncAdminTextareasToState() {
+            order.forEach(cat => {
+                const textarea = document.getElementById(`admin-words-${cat}`);
+                if (textarea) {
+                    const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l !== '');
+                    wordBanks[cat] = lines.slice(0, 6);
+                }
+            });
+        }
+
+        function moveCategory(index, direction) {
+            syncAdminTextareasToState(); // Save typed changes before re-rendering grid
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= order.length) return;
+            
+            const temp = order[index];
+            order[index] = order[newIndex];
+            order[newIndex] = temp;
+            
+            renderTeacherDashboard();
+        }
+
+        function renderTeacherDashboard() {
+            const grid = document.getElementById('admin-editors-grid');
+            const preview = document.getElementById('admin-sequence-preview');
+            grid.innerHTML = '';
+            preview.innerHTML = '';
+
+            order.forEach((cat, index) => {
+                const conf = config[cat];
+                
+                // Top Sequence Preview
+                const badge = document.createElement('div');
+                badge.className = `px-3 py-1.5 rounded-lg flex items-center gap-1 ${conf.headerBg} shadow-sm`;
+                badge.innerHTML = `<span>${index + 1}.</span> <span>${conf.title}</span>`;
+                preview.appendChild(badge);
+                
+                if (index < order.length - 1) {
+                    const arrow = document.createElement('span');
+                    arrow.className = 'text-gray-400 font-bold';
+                    arrow.textContent = '➔';
+                    preview.appendChild(arrow);
+                }
+
+                // Grid Editor
+                const box = document.createElement('div');
+                box.className = `p-4 rounded-xl border-2 bg-white shadow-sm flex flex-col h-full ${conf.columnBorder}`;
+                
+                const header = document.createElement('div');
+                header.className = 'flex justify-between items-center mb-3';
+                header.innerHTML = `
+                    <h4 class="font-bold flex items-center gap-2 text-gray-800">
+                        <span class="${conf.headerBg} w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-sm">${index + 1}</span>
+                        ${conf.title}
+                    </h4>
+                    <div class="flex gap-1">
+                        <button onclick="moveCategory(${index}, -1)" class="p-1.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors" title="Move Left" ${index === 0 ? 'disabled class="opacity-30"' : ''}>◀</button>
+                        <button onclick="moveCategory(${index}, 1)" class="p-1.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors" title="Move Right" ${index === order.length - 1 ? 'disabled class="opacity-30"' : ''}>▶</button>
+                    </div>
+                `;
+                
+                const textarea = document.createElement('textarea');
+                textarea.id = `admin-words-${cat}`;
+                textarea.className = 'w-full flex-grow p-3 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-slate-500 focus:outline-none';
+                textarea.rows = 6;
+                textarea.placeholder = "Enter words here...\nOne per line\nMax 6 words\nLeave empty to hide";
+                textarea.value = wordBanks[cat] ? wordBanks[cat].join('\n') : '';
+                
+                // Auto-save typing so it is not lost when changing order
+                textarea.oninput = syncAdminTextareasToState; 
+
+                box.appendChild(header);
+                box.appendChild(textarea);
+                grid.appendChild(box);
+            });
+        }
+
+        function saveAndCloseAdmin() {
+            syncAdminTextareasToState();
+            clearSentence();
+            switchView('pupil');
+            showToast('💾 Settings Saved & Locked');
+        }
+
+        function copyToClipboard(text, successMsg) {
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+            showToast(successMsg);
+        }
+
+        function generateShareableLink() {
+            syncAdminTextareasToState();
+            const state = { o: order, w: wordBanks };
+            const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+            const hashString = `#data=${encoded}`;
+            
+            const urlObj = new URL(window.location.href);
+            urlObj.hash = hashString;
+            const finalUrl = urlObj.toString();
+
+            copyToClipboard(finalUrl, '📋 Pupil Link copied to clipboard!');
+        }
+
+        function resetToDefaultWords() {
+            if(confirm("Are you sure you want to load default words? This will erase your current lists.")) {
+                order = [...DEFAULT_ORDER];
+                wordBanks = JSON.parse(JSON.stringify(DEFAULT_WORD_BANKS));
+                renderTeacherDashboard();
+                showToast('🔄 Default words loaded');
+            }
+        }
+
+        function hydrateFromURL() {
+            const hash = window.location.hash;
+            if (hash && hash.includes('#data=')) {
+                try {
+                    const encoded = hash.split('#data=')[1];
+                    const decoded = JSON.parse(decodeURIComponent(atob(encoded)));
+                    if (decoded.o && decoded.w) {
+                        order = decoded.o;
+                        wordBanks = decoded.w;
+                        showToast('🌟 Custom word list loaded!');
+                        return true;
+                    }
+                } catch (e) {
+                    console.error("Failed to load state from URL", e);
+                    showToast('⚠️ Link broken. Loaded defaults.');
+                }
+            }
+            return false;
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-notification');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function readSentence() {
+            if (!('speechSynthesis' in window)) {
+                document.getElementById('tts-error').classList.remove('hidden');
+                return;
+            }
+            
+            let parts = [];
+            order.forEach(cat => {
+                if (currentSentence[cat]) {
+                    parts.push(cleanWord(currentSentence[cat]));
+                }
+            });
+            
+            const text = parts.join(' ');
+            if (text.length > 0) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-GB';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Initialize App
+        window.onload = () => {
+            hydrateFromURL();
+            switchView('pupil');
+        };
+    </script>
+</body>
+</html>
+```
